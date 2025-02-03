@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router';
 import styled from 'styled-components';
 import placeholder from '../../assets/placeholder.png';
 import ProductCardVariants from './ProductCardVariants';
@@ -16,14 +17,21 @@ function ProductCard({ product, handleAddItemToCart }) {
         <Details>${product.price.toFixed(2) || '0.00'}</Details>
       </Copy>
       <ButtonWrapper>
-        {product.variants.length > 1 ? (
-          <button onClick={() => setAreVariantsShown(true)}>
-            Show Options
-          </button>
+        {product.variants?.length > 1 ? (
+          <>
+            <Link to={`/products/${product.id}`} className="linkButton">
+              {product.variants.length} Options Available
+            </Link>
+          </>
         ) : (
-          <button onClick={() => handleAddItemToCart(product.variants[0].id)}>
-            Add to Cart
-          </button>
+          <>
+            <Link className="linkButton" to={`/products/${product.id}`}>
+              Details
+            </Link>
+            <button onClick={() => handleAddItemToCart(product.variants[0].id)}>
+              Quick Add
+            </button>
+          </>
         )}
       </ButtonWrapper>
       {areVariantsShown && (
@@ -65,7 +73,8 @@ const ButtonWrapper = styled.div`
   width: 100%;
   height: 4rem;
   display: flex;
-  button {
+  button,
+  .linkButton {
     border: none;
     background-color: rgb(from var(--medium-blue) r g b / 0.5);
     width: 100%;
@@ -75,6 +84,12 @@ const ButtonWrapper = styled.div`
     &:active {
       background-color: rgb(from var(--light-blue) r g b / 0.25);
     }
+  }
+  .linkButton {
+    border-radius: 0;
+    font-weight: normal;
+    display: flex;
+    align-items: center;
   }
 `;
 

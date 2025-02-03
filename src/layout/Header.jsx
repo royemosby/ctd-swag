@@ -1,14 +1,9 @@
 import { useEffect, useState } from 'react';
 import ctdLogo from '../assets/icons/mono-blue-logo.svg';
 import shoppingCart from '../assets/icons/shoppingCart.svg';
+import { Link } from 'react-router';
 
-function Header({
-  cart,
-  handleOpenCart,
-  handleOpenAuthDialog,
-  user,
-  handleLogOut,
-}) {
+function Header({ cart, handleOpenCart, handleOpenAuthDialog, user }) {
   const [cartCount, setCartCount] = useState(0);
   useEffect(() => {
     if (cart.length > 0) {
@@ -23,17 +18,18 @@ function Header({
   }, [cart, user]);
   return (
     <header>
-      <div className="siteBranding">
-        <img src={ctdLogo} alt="Code The Dream Logo" />
-        <h1>CTD Swag</h1>
+      <div>
+        <Link className="siteBranding" to="/">
+          <img src={ctdLogo} alt="Code The Dream Logo" />
+          <h1>CTD Swag</h1>
+        </Link>
       </div>
       <div className="userActions">
         {user.id ? (
           <>
-            <span>Hi, {user.firstName}</span>
-            <button className="authButton signOut" onClick={handleLogOut}>
-              Sign out
-            </button>
+            <Link to="/account" className="linkButton">
+              <span>Hi, {user.firstName}</span>
+            </Link>
           </>
         ) : (
           <>

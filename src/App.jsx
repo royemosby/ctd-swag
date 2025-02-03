@@ -1,71 +1,31 @@
 import { useCallback, useEffect, useReducer, useState } from 'react';
+import { Routes, Route, Navigate } from 'react-router';
 import './App.css';
 import './assets/css-reset.css';
 import AuthDialog from './features/Auth/AuthDialog';
 import Cart from './features/Cart/Cart';
 import Footer from './layout/Footer';
 import Header from './layout/Header';
-import ProductList from './features/ProductList/ProductList';
 import Dialog from './shared/Dialog';
-import ProductViewForm from './features/ProductViewForm/ProductViewForm';
+import Shop from './pages/Shop/Shop';
+import Account from './pages/Account/Account';
+import Checkout from './pages/Checkout/Checkout';
+import ProductDetail from './pages/Product/ProductDetails';
 import {
   initialState as cartInitialState,
   cartActions,
   cartReducer,
 } from './reducers/App/cart.reducer';
-
-function sortByBaseName({ productItems, isSortAscending }) {
-  return productItems.toSorted((a, b) => {
-    const baseNameA = a.baseName.toLowerCase();
-    const baseNameB = b.baseName.toLowerCase();
-    if (baseNameA > baseNameB) {
-      if (isSortAscending) {
-        return 1;
-      } else {
-        return -1;
-      }
-    }
-    if (baseNameA < baseNameB) {
-      if (isSortAscending) {
-        return -1;
-      } else {
-        return 1;
-      }
-    }
-    return 0;
-  });
-}
-
-function sortByPrice({ productItems, isSortAscending }) {
-  return productItems.toSorted((a, b) => {
-    if (isSortAscending) {
-      return a.price - b.price;
-    } else {
-      return b.price - a.price;
-    }
-  });
-}
-
-function filterByQuery({ productItems, searchTerm }) {
-  const term = searchTerm.toLowerCase();
-  if (term === '') {
-    return productItems;
-  }
-  return productItems.filter((item) => {
-    if (item.baseName.toLowerCase().includes(term)) {
-      return item;
-    } else if (item.baseDescription.toLowerCase().includes(term)) {
-      return item;
-    } else if (item.variantDescription.toLowerCase().includes(term)) {
-      return item;
-    }
-  });
-}
+import { sortByBaseName } from './utils/sortByBaseName';
+import { sortByPrice } from './utils/sortByPrice';
+import { filterByQuery } from './utils/filterByQuery';
+import { convertInventoryToProducts } from './utils/convertInventoryToProducts';
 
 const baseUrl = import.meta.env.VITE_API_BASE_URL;
 function App() {
+  //keeping original for filtering logic
   const [inventory, setInventory] = useState([]);
-  const [filteredInventory, setFilteredInventory] = useState([]);
+  const [filteredProducts, setFilteredProducts] = useState([]);
   const [isAuthDialogOpen, setIsAuthDialogOpen] = useState(false);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [user, setUser] = useState({});
@@ -76,8 +36,10 @@ function App() {
   const [sortBy, setSortBy] = useState('baseName');
   const [searchTerm, setSearchTerm] = useState('');
 
-  //reducers
-  const [cartState, dispatch] = useReducer(cartReducer, cartInitialState);
+  const [cartState, dispatchCartAction] = useReducer(
+    cartReducer,
+    cartInitialState
+  );
 
   useEffect(() => {
     (async () => {
@@ -86,13 +48,13 @@ function App() {
         if (!resp.ok) {
           throw new Error(resp.status);
         }
-        const products = await resp.json();
-        const sortedProducts = sortByBaseName({
-          productItems: products,
+        const inventory = await resp.json();
+        const sortedInventory = sortByBaseName({
+          productItems: inventory,
           isSortAscending: true,
         });
-        setInventory([...sortedProducts]);
-        setFilteredInventory([...sortedProducts]);
+        setInventory([...sortedInventory]);
+        setFilteredProducts(convertInventoryToProducts(sortedInventory));
       } catch (error) {
         console.error(error);
       }
@@ -101,58 +63,57 @@ function App() {
 
   useEffect(() => {
     if (sortBy === 'baseName') {
-      setFilteredInventory((previous) =>
+      setFilteredProducts((previous) =>
         sortByBaseName({ productItems: previous, isSortAscending })
       );
     } else {
-      setFilteredInventory((previous) =>
+      setFilteredProducts((previous) =>
         sortByPrice({ productItems: previous, isSortAscending })
       );
     }
   }, [isSortAscending, sortBy]);
 
   useEffect(() => {
-    setFilteredInventory(
-      filterByQuery({ productItems: inventory, searchTerm })
-    );
+    const filteredInventory = filterByQuery({
+      productItems: inventory,
+      searchTerm,
+    });
+    setFilteredProducts(convertInventoryToProducts(filteredInventory));
   }, [searchTerm, inventory]);
 
-  const handleSyncCart = useCallback(
-    async (workingCart) => {
-      if (!user.id) {
-        dispatch({ type: cartActions.updateCart, cart: workingCart });
-        return;
-      }
-      dispatch({ type: cartActions.sync });
+  useEffect(() => {
+    //exits if not logged on
+    if (!user.token) {
+      return;
+    }
+    async function syncCartWithServer(workingCart, userToken) {
       const options = {
         method: 'PATCH',
         body: JSON.stringify({ cartItems: workingCart }),
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${user.token}`,
+          Authorization: `Bearer ${userToken}`,
         },
       };
-      try {
-        const resp = await fetch(`${baseUrl}/cart`, options);
-        if (!resp.ok) {
-          console.log('resp not okay');
-          if (resp.status === 401) {
-            throw new Error('Not authorized. Please log in.');
-          }
+      const resp = await fetch(`${baseUrl}/cart`, options);
+      if (!resp.ok) {
+        if (resp.status === 401) {
+          throw new Error('Not authorized. Please log in.');
         }
-        const cartData = await resp.json();
-        if (cartData.error) {
-          throw new Error(cartData.error);
-        }
-        dispatch({ type: cartActions.updateCart, cart: cartData });
-      } catch (error) {
-        console.error(error);
-        dispatch({ type: cartActions.error, error: error.message });
-      } finally {
-        dispatch({ type: cartActions.notSyncing });
       }
+      const cartData = await resp.json();
+      if (cartData.error) {
+        throw new Error(cartData.error);
+      }
+    }
+    syncCartWithServer(cartState.cart, user.token);
+  }, [cartState.cart, user.token]);
+
+  const handleUpdateCart = useCallback(
+    (workingCart) => {
+      dispatchCartAction({ type: cartActions.updateCart, cart: workingCart });
     },
-    [user.id, user.token, dispatch]
+    [dispatchCartAction]
   );
 
   async function handleAuthenticate(credentials) {
@@ -172,7 +133,7 @@ function App() {
       }
       const userData = await resp.json();
       setUser({ ...userData.user, token: userData.token });
-      dispatch({
+      dispatchCartAction({
         type: cartActions.updateCart,
         cart: userData.cartItems,
       });
@@ -214,22 +175,17 @@ function App() {
     }
   }
 
-  //START
   async function handleAddItemToCart(id) {
-    //exit out of function to prevent anon fetches
-    dispatch({ type: cartActions.addItem, id, inventory });
-    if (!user.id) {
-      return;
-    }
+    dispatchCartAction({ type: cartActions.addItem, id, inventory });
   }
 
   function handleCloseCart() {
-    dispatch({ type: cartActions.close });
+    dispatchCartAction({ type: cartActions.close });
     setAuthError('');
   }
 
   function handleLogOut() {
-    dispatch({ type: cartActions.reset });
+    dispatchCartAction({ type: cartActions.reset });
     setUser({});
   }
 
@@ -247,7 +203,7 @@ function App() {
 
   function handleCloseDialog() {
     setIsDialogOpen(false);
-    dispatch({ type: cartActions.dismissError });
+    dispatchCartAction({ type: cartActions.dismissError });
   }
 
   return (
@@ -260,45 +216,70 @@ function App() {
       )}
       <Header
         cart={cartState.cart}
-        handleOpenCart={() => dispatch({ type: cartActions.open })}
+        handleOpenCart={() => dispatchCartAction({ type: cartActions.open })}
         handleOpenAuthDialog={handleOpenAuthDialog}
         handleLogOut={handleLogOut}
         user={user}
       />
-      <main>
-        {isAuthDialogOpen && (
-          <AuthDialog
-            handleCloseAuthDialog={() => setIsAuthDialogOpen(false)}
-            handleAuthenticate={handleAuthenticate}
-            handleRegister={handleRegister}
-            authError={authError}
-            isAuthenticating={isAuthenticating}
-            isRegistering={isRegistering}
-            resetAuthError={() => setAuthError('')}
-          />
-        )}
-        <ProductViewForm
-          setSortBy={setSortBy}
-          setIsSortAscending={setIsSortAscending}
-          setBy={sortBy}
-          isSortAscending={isSortAscending}
-          searchTerm={searchTerm}
-          setSearchTerm={setSearchTerm}
+      {isAuthDialogOpen && (
+        <AuthDialog
+          handleCloseAuthDialog={() => setIsAuthDialogOpen(false)}
+          handleAuthenticate={handleAuthenticate}
+          handleRegister={handleRegister}
+          authError={authError}
+          isAuthenticating={isAuthenticating}
+          isRegistering={isRegistering}
+          resetAuthError={() => setAuthError('')}
         />
-        <ProductList
-          inventory={filteredInventory}
-          handleAddItemToCart={handleAddItemToCart}
-        ></ProductList>
-        {cartState.isCartOpen && (
-          <Cart
-            cartError={cartState.error}
-            isCartSyncing={cartState.isCartSyncing}
-            cart={cartState.cart}
-            handleSyncCart={handleSyncCart}
-            handleCloseCart={handleCloseCart}
+      )}
+      <main>
+        <Routes>
+          <Route
+            path="/"
+            element={
+              <Shop
+                filteredProducts={filteredProducts}
+                handleAddItemToCart={handleAddItemToCart}
+                setSortBy={setSortBy}
+                setIsSortAscending={setIsSortAscending}
+                sortBy={sortBy}
+                isSortAscending={isSortAscending}
+                searchTerm={searchTerm}
+                setSearchTerm={setSearchTerm}
+              />
+            }
           />
-        )}
+          <Route
+            path="/checkout"
+            element={<Checkout cart={cartState.cart} />}
+          />
+          {user.id && (
+            <Route
+              path="/account"
+              element={<Account user={user} handleLogOut={handleLogOut} />}
+            />
+          )}
+          <Route
+            path="/products/:id"
+            element={
+              <ProductDetail
+                products={filteredProducts}
+                handleAddItemToCart={handleAddItemToCart}
+              />
+            }
+          />
+          <Route path="*" element={<Navigate to="/" />} />
+        </Routes>
       </main>
+      {cartState.isCartOpen && (
+        <Cart
+          cartError={cartState.error}
+          isCartSyncing={cartState.isCartSyncing}
+          cart={cartState.cart}
+          handleUpdateCart={handleUpdateCart}
+          handleCloseCart={handleCloseCart}
+        />
+      )}
       <Footer />
     </>
   );

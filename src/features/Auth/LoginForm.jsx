@@ -26,6 +26,7 @@ function AuthForm({
           autoComplete="off"
           type="text"
           id="email"
+          name="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
         />
@@ -35,6 +36,7 @@ function AuthForm({
         <input
           autoComplete="off"
           type="password"
+          name="password"
           id="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}

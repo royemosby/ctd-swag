@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router';
 import CartItem from './CartItem';
 
 function Cart({
   cart,
   handleCloseCart,
-  handleSyncCart,
+  handleUpdateCart,
   cartError,
   isCartSyncing,
 }) {
+  const navigate = useNavigate();
   const [workingCart, setWorkingCart] = useState(cart);
   const [isFormDirty, setIsFormDirty] = useState(false);
 
@@ -60,13 +62,19 @@ function Cart({
     setWorkingCart([...cart]);
   }
 
+  function handleCheckout(e) {
+    e.preventDefault();
+    handleCloseCart();
+    navigate('/checkout');
+  }
+
   function removeEmptyItems(cart) {
     return cart.filter((i) => i.quantity !== 0);
   }
 
   function handleConfirm(e) {
     e.preventDefault();
-    handleSyncCart([...removeEmptyItems(workingCart)]);
+    handleUpdateCart([...removeEmptyItems(workingCart)]);
     setIsFormDirty(false);
   }
 
@@ -99,9 +107,14 @@ function Cart({
         )}
         <h2>Cart Total: ${getCartPrice()}</h2>
         <div className="cartFooter">
-          <button disabled={isFormDirty} onClick={handleCloseCart}>
-            CloseCart
-          </button>
+          <div className="buttonGroup">
+            <button disabled={isFormDirty} onClick={handleCloseCart}>
+              CloseCart
+            </button>
+            <button disabled={isFormDirty} onClick={handleCheckout}>
+              Checkout
+            </button>
+          </div>
           {cartError && <p>{cartError}</p>}
         </div>
       </div>

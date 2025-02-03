@@ -1,0 +1,26 @@
+.cartItem {
+  font-size: 1rem;
+  color: var(--dark-blue);
+  border-radius: var(--small-radius);
+  background-color: #fff;
+  display: flex;
+  justify-content: space-between;
+  margin: 0;
+  align-items: center;
+  margin-bottom: .25rem;
+  padding-left: .75rem;
+}
+
+.cartItem h2 {
+  padding: 8px;
+}
+
+.cartItem img {
+  max-height: 72px;
+}
+
+.subtotal {
+  border-left: 1px solid var(--dark-blue);
+  padding: .25rem;
+  text-align: right;
+}

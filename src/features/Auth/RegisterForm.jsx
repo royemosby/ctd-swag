@@ -28,6 +28,7 @@ function AuthForm({
           autoComplete="off"
           type="text"
           id="firstName"
+          name="firstName"
           value={firstName}
           onChange={(e) => setFirstName(e.target.value)}
         />
@@ -38,6 +39,7 @@ function AuthForm({
           autoComplete="off"
           type="text"
           id="lastName"
+          name="lastName"
           value={lastName}
           onChange={(e) => setLastName(e.target.value)}
         />

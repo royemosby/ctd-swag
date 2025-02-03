@@ -1,9 +1,11 @@
 #root {
   max-width: 1280px;
+  width: 100vw;
   margin: 0 auto;
   text-align: center;
   background-color: #e7f6f4;
   padding: 0 1rem;
+  position: relative;
 }
 
 .warningDialog {
@@ -41,15 +43,18 @@ header {
   background-color: var(--light-blue);
   height: var(--header-height);
   display: grid;
-  grid-template-columns: 1fr 225px 100px;
+  grid-template-columns: 2fr 250px 100px;
   align-items: center;
   padding-top: 1rem;
   position: sticky;
   top: 0;
   will-change: transform;
+  z-index: 1;
 }
 
 .siteBranding {
+  text-decoration: none;
+  color: var(--dark-blue);
   position: relative;
   display: flex;
   flex-direction: row;
@@ -60,6 +65,15 @@ header {
 .siteBranding img {
   width: 100px;
   margin-right: 1rem;
+}
+
+.userActions span {
+  margin-right: .5rem;
+}
+
+.userActions a {
+  text-decoration: none;
+  color: var(--dark-blue);
 }
 
 h1 {
@@ -91,7 +105,7 @@ main {
   position: absolute;
   background-color: var(--light-blue);
   z-index: 1;
-  top: 1rem;
+  top: 6rem;
   padding: 1rem;
   border-radius: var(--medium-radius);
   border: 3px solid var(--dark-blue);
@@ -117,7 +131,10 @@ main {
 }
 
 .authSubmitButtons button,
-.authButton {
+.authButton,
+.linkButton,
+.buttonGroup button {
+  text-decoration: none;
   font-weight: bold;
   border: none;
   padding: 1rem;
@@ -127,16 +144,20 @@ main {
 }
 
 .authSubmitButtons button:hover,
-.authButton:hover {
+.authButton:hover,
+.linkButton:hover,
+.buttonGroup button:hover {
   background-color: rgb(from var(--medium-blue) r g b /.25);
 }
 
 .authSubmitButtons button:active,
-.authButton:active {
+.authButton:active,
+.buttonGroup button:active {
   background-color: rgb(from var(--light-blue) r g b /.25);
 }
 
-.authSubmitButtons button:disabled {
+.authSubmitButtons button:disabled,
+.buttonGroup button:disabled {
   background-color: rgb(from var(--medium-gray) r g b /.5);
   color: rgb(from var(--dark-blue) r g b /.5);
 }
@@ -323,8 +344,9 @@ button:disabled {
 
 .cartListWrapper {
   position: absolute;
-  top: calc(var(--header-height) / -1 + 8px);
-  right: -8px;
+  /* top: calc(var(--header-height) / -1 + 8px); */
+  top: 1rem;
+  right: 1rem;
   padding: 1rem;
   background-color: var(--dark-blue);
   color: var(--light-blue);
@@ -344,20 +366,53 @@ button:disabled {
 .cartScreen,
 .authFormScreen {
   backdrop-filter: blur(4px);
-  border-radius: var(--medium-radius);
+  border-radius: 0;
   content: "";
   background-color: rgb(from var(--light-blue) r g b /.25);
   position: absolute;
-  top: 4px;
+  top: 0px;
   bottom: 4px;
   left: -10px;
   right: -10px;
   z-index: 1;
 }
 
+.account {
+  width: 350px;
+  margin: auto
+}
+
+.accountDetails {
+  max-width: 300px;
+  margin: auto;
+  padding-top: 1rem;
+}
+
+.accountDetails p {
+  padding-bottom: 1rem;
+}
+
+.inputGroup {
+  padding-bottom: .25rem;
+}
+
+.buttonGroup {
+  padding-top: 1rem;
+  width: 100%;
+  display: flex;
+  justify-content: space-around;
+}
+
+.buttonGroup button,
+.buttonGroup .linkButton {
+  width: 150px;
+}
 
 footer {
-  position: sticky;
+  position: fixed;
+  margin: auto;
+  left: 0;
+  width: 100%;
   bottom: 0;
   background-color: var(--light-blue);
 }
